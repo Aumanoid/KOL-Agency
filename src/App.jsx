@@ -263,7 +263,7 @@ create policy "Public Access Reports" on reports for all using (true) with check
               {kols.map(kol => (
                 <div key={kol.id} className="bg-white rounded-xl shadow p-4 relative">
                   {isEditMode && <button onClick={() => handleDeleteKol(kol.id)} className="absolute top-2 left-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs">X</button>}
-                  {/* รูป - แก้แล้ว: ลากวาง / เลือกไฟล์ / แปะลิงก์ ได้ในช่องเดียว */}
+                  {/* รูป - แก้บั๊กลากแล้วไม่ขึ้น: แยกกล่องลากออกจากปุ่มกดเลือกไฟล์ */}
                   <div className="mb-3">
                     {kol.image_url ? (
                       <img src={kol.image_url} alt={kol.name} className="w-full h-48 object-cover rounded-lg" />
@@ -272,12 +272,13 @@ create policy "Public Access Reports" on reports for all using (true) with check
                     )}
                     {isEditMode && (
                       <div className="mt-2">
-                        <label className="block border-2 border-dashed border-blue-300 rounded-lg p-3 text-center text-sm text-blue-600 cursor-pointer hover:bg-blue-50"
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => { e.preventDefault(); handleImageUpload(kol.id, e.dataTransfer.files[0]); }}>
-                          {uploadingId === kol.id ? 'กำลังอัปโหลด...' : 'ลากรูปมาวางตรงนี้ หรือ กดเพื่อเลือกไฟล์'}
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(kol.id, e.target.files[0])} />
-                        </label>
+                        <DragDropBox kolId={kol.id} uploading={uploadingId === kol.id} onFile={(file) => handleImageUpload(kol.id, file)} />
+                        <div className="flex gap-2 mt-2">
+                          <label className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded cursor-pointer hover:bg-blue-700">กดเพื่อเลือกไฟล์
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files[0]) handleImageUpload(kol.id, e.target.files[0]); e.target.value = ''; }} />
+                          </label>
+                          <span className="text-xs text-slate-400 self-center">หรือลากรูปมาวางในกล่องด้านบนได้เลย</span>
+                        </div>
                         <input type="text" placeholder="หรือแปะลิงก์รูปจากไดรฟ์ (.jpg / .png) ตรงนี้ ห้ามแปะลิงก์หน้าโปรไฟล์" value={kol.image_url?.startsWith('blob:') ? '' : kol.image_url || ''} onChange={(e) => handleUpdateKol(kol.id, { image_url: e.target.value })} className="mt-2 w-full border rounded px-2 py-1.5 text-sm" />
                       </div>
                     )}
@@ -364,6 +365,28 @@ create policy "Public Access Reports" on reports for all using (true) with check
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+// กล่องลากวางแยกต่างหาก - แก้บั๊กที่ label เดิมทำให้ onDrop ไม่ทำงาน
+function DragDropBox({ kolId, uploading, onFile }) {
+  const [isDragging, setIsDragging] = useState(false);
+  return (
+    <div
+      onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+      onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget === e.target) setIsDragging(false); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) onFile(file);
+      }}
+      className={`border-2 border-dashed rounded-lg p-4 text-center text-sm transition ${isDragging ? 'border-blue-600 bg-blue-100 text-blue-800 scale-[1.01]' : 'border-blue-300 bg-blue-50 text-blue-600'}`}
+    >
+      {uploading ? 'กำลังอัปโหลด...' : isDragging ? 'ปล่อยรูปตรงนี้ได้เลย!' : 'ลากรูปมาวางตรงนี้ได้เลย'}
     </div>
   );
 }
